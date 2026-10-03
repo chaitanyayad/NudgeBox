@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+motor
+pydantic[email]
+pydantic-settings
+pytest
+cryptography
