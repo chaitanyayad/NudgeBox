@@ -80,3 +80,50 @@ This limits the "blast radius" of a compromised key and allows us to securely ro
 
 **In `backend/gmail/generate_master_key.py`**:
 *   `main`: Uses Python's `os.urandom(32)` to generate 32 completely random bytes (256 bits), encodes them into a readable base64 string, and prints it out. We run this script exactly once to generate the super-secret `TOKEN_ENCRYPTION_KEY` that we put in our `.env` file!
+
+---
+
+## 🌐 Task 4: Google OAuth 2.0 and Session Management
+
+### What we did:
+- Implemented the full Google OAuth 2.0 authorization code flow from scratch using raw HTTP requests in `backend/api/auth.py`.
+- Enforced strict scopes (`gmail.readonly`, `email`, `profile`).
+- Configured PKCE (`code_verifier` and `code_challenge`) and state cookies to prevent CSRF and interception attacks.
+- Exchanged the code for a Refresh Token, encrypted it using the master key from Task 3, and saved it in MongoDB.
+- Created a secure JWT session cookie to log the user in.
+
+### Why we did it:
+- **No Passwords Allowed:** We never ask for a user's Google password. Storing passwords is a massive security risk. OAuth ensures we only get exactly what the user consents to (reading emails).
+- **Background Access:** By specifically requesting `prompt=consent` and `access_type=offline`, Google issues us a **Refresh Token**. This special token never expires and allows our background agent to read emails at 3 AM while the user is asleep, bypassing 2FA!
+- **PKCE:** Proof Key for Code Exchange (PKCE) ensures that even if a hacker intercepts our callback URL, they can't steal the token without knowing the secret `code_verifier` we generated in step 1.
+
+### How we did it:
+We used `httpx` for fast, asynchronous HTTP requests to Google's token endpoint. For session management, we used `PyJWT` to create a lightweight, stateless token signed by our master key.
+
+---
+
+## 📬 Task 5: Gmail Sync Workflow
+
+### What we did:
+- Built `backend/gmail/fetch.py` to connect to Google's API and securely fetch emails.
+- Used a highly specific Gmail query to filter out spam and only grab interview/assessment emails from the last 30 days.
+- Wrote a CLI tool (`backend/gmail/peek.py`) to safely test our connection and view the senders/subjects of candidate emails without starting the entire background server.
+
+### What each function does under the hood:
+
+**In `backend/gmail/fetch.py`**:
+*   `get_access_token(user_id)`: Takes the user's ID, looks them up in MongoDB, and uses our encryption vault (from Task 3) to decrypt their Refresh Token. It then sends that Refresh Token to Google to get a brand new, valid 1-hour Access Token so we can read their emails.
+*   `fetch_emails(user_id, max_results)`: Uses the access token to hit the Gmail API. It searches for emails matching our interview keywords (`"online assessment"`, `hackerrank.com`, etc). For each matching email, it downloads the full content, extracts the Subject and Sender headers, and safely strips out the messy HTML body down to raw text (truncated to 6000 characters).
+
+**In `backend/gmail/peek.py`**:
+*   `peek()`: A simple testing function. It grabs the first user from the database, calls `fetch_emails` for them, and prints out a clean list of the subjects and senders of the emails we found. It intentionally *doesn't* print the email bodies to keep your terminal readable.
+
+### Bugs we faced and how we solved them:
+1. **The MongoDB `ObjectId` bug:**
+   - **The Error:** Our `peek.py` script crashed with `User not found`, even though it printed out the user's email perfectly a second before.
+   - **The Cause:** `peek.py` passed the user's ID as a standard Python string (`"6789abc..."`). However, MongoDB stores IDs as a special binary object called `ObjectId`. When our backend asked MongoDB to find the string `"6789abc..."`, MongoDB couldn't find a match.
+   - **The Fix:** We imported `ObjectId` from `bson` and wrapped the string (`ObjectId(user_id)`) before querying the database in `get_access_token`, which fixed the lookup instantly!
+2. **The `403 Forbidden` Google Cloud bug:**
+   - **The Error:** We successfully connected to Google, but Google threw a `403 Forbidden: Gmail API has not been used in project...` error and refused to give us the emails.
+   - **The Cause:** By default, new Google Cloud Projects have all their APIs turned off to save resources. Even though we had the right tokens, the Gmail system was technically "switched off" for our app.
+   - **The Fix:** We clicked the exact activation link provided in the error log, clicked "Enable Gmail API" in the Google Cloud Console, and waited 30 seconds for the servers to update. The next time we ran the script, it worked perfectly!
