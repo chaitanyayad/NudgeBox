@@ -7,3 +7,5 @@ pytest
 cryptography
 httpx
 PyJWT
+instructor
+openai
