@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from backend.shared.db import get_db
+from backend.api import auth
 
 app = FastAPI(title="NudgeBox API")
+
+app.include_router(auth.router)
 
 @app.get("/health")
 async def health_check():

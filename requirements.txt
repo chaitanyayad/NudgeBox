@@ -5,3 +5,5 @@ pydantic[email]
 pydantic-settings
 pytest
 cryptography
+httpx
+PyJWT
