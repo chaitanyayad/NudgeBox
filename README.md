@@ -73,3 +73,19 @@ When a NudgeBox workflow says "sleep for 7 days," Temporal serializes the state 
 7. The worker immediately resumes exactly where it left off and fires the T-1h reminder!
 
 You cannot do this reliably with CRON without writing complex, bug-prone state machines in your database. Temporal makes it look like a simple `asyncio.sleep()`.
+
+
+## Cloud Deployment (Render)
+
+We use Render's Blueprint (`render.yaml`) to deploy our microservices:
+1. `nudgebox-api`: The FastAPI web server.
+2. `nudgebox-frontend`: The Vite/React web dashboard.
+3. `nudgebox-temporal-worker`: The Python background worker.
+
+**Environment variables required in Render dashboard:**
+- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: Your Google OAuth credentials
+- `TOKEN_ENCRYPTION_KEY`: For envelope encryption of refresh tokens
+- `MONGODB_URI`: Your MongoDB Atlas Connection String
+- `TELEGRAM_BOT_TOKEN`: The bot token from @BotFather
+- `OPENAI_API_KEY` / `OPENAI_BASE_URL`: Configuration for your chosen cloud GPU serving Gemma 3 (e.g. DigitalOcean, vLLM).
+- `TEMPORAL_ADDRESS`: The gRPC endpoint for Temporal Cloud (or a self-hosted Temporal instance).

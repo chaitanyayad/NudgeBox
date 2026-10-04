@@ -281,3 +281,17 @@ We now have a complete, end-to-end AI agent system. It reads emails, evaluates t
 ### What we learned:
 - **Client Flexibility:** By routing everything through OpenAI's python library (`AsyncOpenAI`) and using Instructor, we can easily swap between Ollama and a proper GPU endpoint by just changing the `base_url` and `api_key`.
 - **Latency Differences:** Local Ollama is perfect for privacy and local dev, but for a real product reading hundreds of emails, a hosted API drops latency significantly.
+
+
+---
+
+## 🏆 Phase F: Prize Layers - Task 16 (Render Deployment)
+
+### What we did:
+- Authored a `render.yaml` Blueprint file to orchestrate our infrastructure as code.
+- Defined three services: `nudgebox-api` (FastAPI), `nudgebox-frontend` (Vite/React), and `nudgebox-temporal-worker` (Python background worker).
+- Added the deployment documentation and required environment variables to the `README.md`.
+
+### What we learned:
+- **Infrastructure as Code (IaC):** Using a `render.yaml` Blueprint ensures that our production environment exactly mirrors our definitions, rather than manually clicking through a cloud console.
+- **Service Isolation:** Render automatically isolates our background worker (Temporal) from our public-facing web API, giving us scaling flexibility.

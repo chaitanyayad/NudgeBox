@@ -1,0 +1,60 @@
+services:
+  # 1. FastAPI Web App (Backend APIs)
+  - type: web
+    name: nudgebox-api
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn backend.api.main:app --host 0.0.0.1 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: LLM_PROVIDER
+        value: openai_compat
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        sync: false
+      - key: TEMPORAL_ADDRESS
+        sync: false
+
+  # 2. React Vite Web App (Frontend Dashboard)
+  - type: web
+    name: nudgebox-frontend
+    env: node
+    buildCommand: "cd frontend && npm install && npm run build"
+    startCommand: "cd frontend && npm run preview -- --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: NODE_VERSION
+        value: 20.0.0
+
+  # 3. Temporal Worker (Background service)
+  - type: worker
+    name: nudgebox-temporal-worker
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m backend.worker.main"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: MONGODB_URI
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: LLM_PROVIDER
+        value: openai_compat
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        sync: false
+      - key: TEMPORAL_ADDRESS
+        sync: false
