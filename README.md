@@ -1,12 +1,24 @@
-# NudgeBox
+# NudgeBox 🧠🚀
+
+*Built for the Hacktoberfest Weekend Challenge: Build for a Friend*
 
 NudgeBox is a privacy-first autonomous agent that connects to a user's Gmail, extracts interview invites and online assessments (OAs) using local LLMs, and schedules multi-channel notifications (T-7 days, T-1 day, morning-of, and T-1 hour) to ensure users never miss an important career event.
 
-![NudgeBox Dashboard](./docs/hero.jpg)
+![NudgeBox Dashboard](./screenshots/{D97887FE-7C9B-4ED3-B564-42AE69FDD28D}.png)
 
 ---
 
-## Architecture Diagram
+## 📖 The Problem (Why We Built This)
+
+My friend Tushar is a brilliant developer, but his inbox is an absolute disaster zone. Last month, he got a recruiter screen invite for a job he really wanted, but because the recruiter used a weird timezone abbreviation and it got buried under 50 marketing emails, he completely missed the call. He was devastated.
+
+**NudgeBox** solves this by acting as an autonomous exoskeleton. It securely reads his inbox, accurately identifies career-critical events, and durably schedules aggressive nudges so he is always prepared.
+
+![NudgeBox Demo](./screenshots/{498419F7-0D68-45A3-9D3A-B923F1E823A0}.png)
+
+---
+
+## ⚙️ Architecture & Technical Stack
 
 ```mermaid
 graph TD
@@ -24,51 +36,35 @@ graph TD
     ElevenLabs -->|Voice Note| Telegram
 ```
 
----
+### Core Technologies Used
 
-## Features
-
-1. **LLM Extraction (Gemma 3)**
-   - Uses **Gemma 3** (via Ollama or an OpenAI-compatible endpoint) to parse unstructured email text into strict JSON schemas using `instructor`.
+1. **LLM Extraction Engine (Gemma 3)**
+   - We use **Gemma 3** (served locally via Ollama) to parse unstructured email text into strict JSON schemas using `instructor` and Pydantic. By processing emails locally with open weights, we guarantee **zero data exfiltration** of highly sensitive personal emails.
 2. **Durable Execution (Temporal)**
-   - Utilizes **Temporal** to orchestrate long-running sleep states (up to 7 days). Workflows serialize state to the database, ensuring reminders are not lost during server restarts.
-3. **Multi-Channel Notifications (ElevenLabs + Telegram)**
-   - Sends Telegram text reminders. At T-1 hour, it dynamically generates an audio voice note using the **ElevenLabs** API.
-4. **Semantic Search (MongoDB Atlas Vector Search)**
-   - Embeds sanitized event data using `nomic-embed-text` and indexes it in **MongoDB Atlas Vector Search** for semantic nearest-neighbor retrieval.
-5. **Distributed Tracing (Sentry)**
-   - Both the FastAPI backend and Temporal worker are instrumented with **Sentry SDK** for error tracking.
-6. **Infrastructure as Code (Render)**
-   - Orchestrated via a `render.yaml` Blueprint for deployment.
+   - NudgeBox schedules reminders up to 7 days in the future. Traditional cron jobs would drop these if the server restarted. We utilize **Temporal** to orchestrate long-running sleep states. Workflows serialize their state to the database, ensuring zero reminders are lost even during catastrophic server failures.
+3. **Distributed Tracing (Sentry)**
+   - Both the FastAPI backend and Temporal worker are fully instrumented with the **Sentry SDK** for real-time error tracking and LLM hallucination monitoring.
+4. **Multi-Channel Notifications (ElevenLabs)**
+   - In addition to Telegram text reminders, NudgeBox dynamically generates an enthusiastic audio voice note using the **ElevenLabs** API at T-1 hour to hype the user up for their interview.
+5. **Infrastructure as Code (Render)**
+   - The entire stack is orchestrated via a `render.yaml` Blueprint for robust, reproducible deployments.
 
 ---
 
-## Tech Stack
+## 🧪 The "Kill-Worker" Resilience Test
 
-- **Frontend**: React, Vite, TypeScript, Custom CSS
-- **Backend**: Python, FastAPI, Temporalio, Pydantic, Instructor
-- **Database**: MongoDB Atlas + Vector Search
-- **LLM**: Gemma 3 (via Ollama)
-- **Notifications**: Telegram Bot API, ElevenLabs TTS
-
----
-
-## Durable Execution Demonstration (Temporal)
-
-NudgeBox relies on Temporal to survive server crashes while waiting to send reminders. 
-
-To test this resilience locally:
+We built NudgeBox to be bulletproof. To test the Temporal integration locally:
 1. Start the Temporal worker: `python -m backend.worker.main`
 2. Seed an event 10 minutes in the future: `python backend/worker/seed_event.py --in-minutes 10`
-3. Check the Temporal UI (`http://localhost:8233`). You will see the workflow is in a "Sleeping" state.
-4. **Kill the python worker process (Ctrl+C).** The workflow in the UI will wait patiently.
+3. Check the Temporal UI (`http://localhost:8233`). You will see the workflow in a "Sleeping" state.
+4. **Kill the python worker process (Ctrl+C).** The workflow in the UI does not fail; it waits patiently.
 5. Wait 9 minutes.
 6. Restart the python worker process.
-7. The worker immediately resumes exactly where it left off and fires the T-1h notification.
+7. The worker immediately resumes exactly where it left off and fires the notification.
 
 ---
 
-## How to run locally
+## 💻 Running the Project Locally
 
 ### Prerequisites
 - Python 3.10+
@@ -76,9 +72,9 @@ To test this resilience locally:
 - Ollama (`ollama pull gemma3` & `ollama pull nomic-embed-text`)
 - Node.js 20+
 
-### Setup
+### Setup Instructions
 
-1. Copy `.env.example` to `.env` and fill in the values:
+1. Configure environment variables:
    ```bash
    cp .env.example .env
    ```
@@ -91,14 +87,10 @@ To test this resilience locally:
 3. Create and activate a virtual environment:
    ```bash
    python -m venv .venv
-   
-   # Windows:
    .venv\Scripts\activate
-   # macOS/Linux:
-   source .venv/bin/activate
    ```
 
-4. Install backend dependencies:
+4. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
@@ -118,24 +110,5 @@ To test this resilience locally:
 
 7. Access the services:
    - Dashboard: http://localhost:5173
-   - API Docs: http://localhost:8000/docs
    - Temporal UI: http://localhost:8233
-
----
-
-## Cloud Deployment (Render)
-
-Deployment is managed via Render's Blueprint (`render.yaml`):
-1. `nudgebox-api`: FastAPI web server.
-2. `nudgebox-frontend`: Vite/React frontend.
-3. `nudgebox-temporal-worker`: Python background worker.
-
-**Required Environment Variables:**
-- `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: Google OAuth credentials
-- `TOKEN_ENCRYPTION_KEY`: For envelope encryption of refresh tokens
-- `MONGODB_URI`: MongoDB Atlas Connection String
-- `TELEGRAM_BOT_TOKEN`: Telegram bot token
-- `ELEVENLABS_API_KEY`: API key for VoiceNotifier
-- `OPENAI_API_KEY` / `OPENAI_BASE_URL`: Configuration for cloud GPU endpoint
-- `TEMPORAL_ADDRESS`: gRPC endpoint for Temporal Cloud
-- `SENTRY_DSN`: Sentry project URL for tracing
+   - API Docs: http://localhost:8000/docs
