@@ -267,3 +267,17 @@ We now have a complete, end-to-end AI agent system. It reads emails, evaluates t
 - **Durable Execution:** Temporal workflows look like standard Python async functions, but every `await` (like a sleep) serializes the state to the database.
 - **Resilience:** If the Python worker process dies during a 7-day sleep, the sleep is not lost. When the worker comes back online, Temporal immediately resumes the workflow right where it left off.
 - **Hackathon Value:** This specific resilience story is perfect for the Temporal prize category, as it clearly demonstrates an understanding of their core value proposition instead of just using it as an over-engineered cron job.
+
+
+---
+
+## 🏆 Phase F: Prize Layers - Task 15 (Gemma Benchmark)
+
+### What we did:
+- Configured the Pydantic AI/Instructor client in `backend/agent/extract.py` to support conditionally switching between local `Ollama` and an `openai_compat` endpoint (such as vLLM or Render private service).
+- Updated the `.env` settings to support `LLM_PROVIDER`, `OPENAI_API_KEY`, and `OPENAI_BASE_URL`.
+- Created a benchmark table in `docs/EVAL.md` comparing local Ollama against a GPU cloud provider.
+
+### What we learned:
+- **Client Flexibility:** By routing everything through OpenAI's python library (`AsyncOpenAI`) and using Instructor, we can easily swap between Ollama and a proper GPU endpoint by just changing the `base_url` and `api_key`.
+- **Latency Differences:** Local Ollama is perfect for privacy and local dev, but for a real product reading hundreds of emails, a hosted API drops latency significantly.

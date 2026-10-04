@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: Optional[str] = None
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     LLM_MODEL: str = "gemma3"
+    LLM_PROVIDER: str = "ollama"  # or "openai_compat"
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_BASE_URL: Optional[str] = None
     SENTRY_DSN: Optional[str] = None
     TEMPORAL_ADDRESS: str = "localhost:7233"
 

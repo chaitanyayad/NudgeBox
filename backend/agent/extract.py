@@ -20,11 +20,17 @@ class EventSchema(BaseModel):
     confidence: float = Field(ge=0, le=1)
     needs_review: bool = False
 
-# Initialize Instructor with Ollama via OpenAI compatibility layer
+if settings.LLM_PROVIDER == "openai_compat":
+    _api_key = settings.OPENAI_API_KEY or "missing"
+    _base_url = settings.OPENAI_BASE_URL
+else:
+    _api_key = "ollama"
+    _base_url = f"{settings.OLLAMA_BASE_URL}/v1"
+
 client = instructor.from_openai(
     AsyncOpenAI(
-        base_url=f"{settings.OLLAMA_BASE_URL}/v1",
-        api_key="ollama",  # required but not used by local ollama
+        base_url=_base_url,
+        api_key=_api_key,
     ),
     mode=instructor.Mode.JSON
 )
