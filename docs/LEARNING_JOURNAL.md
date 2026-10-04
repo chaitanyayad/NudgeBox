@@ -182,3 +182,49 @@ We used `httpx` for fast, asynchronous HTTP requests to Google's token endpoint.
 
 ### What each function does:
 *   `compute_reminders(start, now, tz)`: Takes the event time, the current time, and the user's timezone string (like `Asia/Kolkata`). It calculates exactly how many days/hours are left. If a reminder time is already in the past, it skips it. It specifically converts the event time into the user's local timezone to figure out when "08:00 AM" occurs on the day of the event, and then converts that 08:00 AM time back to UTC for the server to use!
+
+
+## 📱 Phase D: Notifiers (Task 10)
+
+### What we did:
+- Built a Notification Engine (`backend/notifications/notifier.py`) that implements a base `Notifier` class with specific implementations for Telegram and Email.
+- Created beautiful, context-aware message templates for all 4 reminder types (R1, R2, R3, R4) that dynamically inject the company, role, local time, and Google Meet/Zoom links.
+- Wrote a test script (`backend/notifications/test_notify.py`) to verify the Telegram integration using the HTTP API.
+
+### What each file/function does in detail:
+*   `backend/notifications/notifier.py -> TelegramNotifier`: 
+    *   **`_format_message`**: Takes the raw JSON event data and formats a human-readable text string. For example, if `kind="R4"`, it injects a "1 HOUR" urgency warning and a "You've got this!" motivational message.
+    *   **`send_reminder`**: Uses the asynchronous HTTP client (`httpx.AsyncClient`) to send a POST request to Telegram's `api.telegram.org/bot<TOKEN>/sendMessage` endpoint. It gracefully degrades to printing a "stub" to the console if the user hasn't provided a real bot token yet.
+*   `backend/notifications/test_notify.py`: An asynchronous script that instantiates the `TelegramNotifier`, mocks an upcoming "Google" interview, and triggers the R4 reminder logic to verify the formatting and network call.
+
+---
+
+## ⏳ Phase D: Temporal Workflows (Task 11)
+
+### What we did:
+- Implemented **Durable Execution** using Temporal! We created the `ReminderWorkflow` and `SyncMailboxWorkflow`.
+- Hooked up our mathematical reminder calculator (from Task 9) to Temporal's `workflow.wait_condition` to pause execution for days or weeks.
+- Wrote the "dumb" Activities (`backend/worker/activities.py`) that actually touch the outside world (like calling Telegram).
+- Created a developer test script (`seed_event.py`) that seeds an interview starting in 2 minutes, allowing us to watch the 1-hour reminder fire immediately.
+
+### What each file/function does in detail:
+*   **`backend/worker/activities.py`**: In Temporal, a workflow is not allowed to talk to the outside world directly (no API calls, no database reads). All of that must be pushed into an `Activity`. 
+    *   `send_reminder_activity`: Receives the user ID, chat ID, and event data. It simply instantiates the `TelegramNotifier` and calls `send_reminder`. Temporal automatically wraps this activity in a `RetryPolicy` so if the Telegram API goes down, it will retry exponentially up to 5 times.
+*   **`backend/worker/workflows.py`**: The brains of the operation.
+    *   **`ReminderWorkflow.run`**: This function contains an infinite `while True:` loop. First, it calculates the next reminder time (e.g. 7 days from now). Then, it calls `await workflow.wait_condition(..., timeout=7_days)`. **This is magic.** Temporal puts the function to sleep, serializes its state, and removes it from RAM. If our server crashes on day 3, Temporal remembers exactly where we were when the server reboots!
+    *   **Signals (`@workflow.signal`)**: If an interview gets rescheduled, we don't want the old reminders firing! Our workflow listens for a `reschedule` signal. If received, `workflow.wait_condition` is instantly interrupted, the loop restarts, recalculates the math for the *new* date, and goes back to sleep!
+*   **`backend/worker/main.py`**: The entry point that connects to the Temporal server (`localhost:7233`), registers our Workflows and Activities into a Task Queue named `nudgebox-tasks`, and starts listening for work.
+
+### Bugs we faced and how we solved them:
+1. **The Temporal Sandbox `RLock` Error:**
+   - **The Error:** Our workflow instantly crashed with `RestrictedWorkflowAccessError: Cannot access threading.RLock.__call__ from inside a workflow`.
+   - **The Cause:** Temporal runs workflows inside a strict "Sandbox" to guarantee deterministic execution. Our `compute_reminders` function imported `pytz`, which uses Python Threading Locks (`RLock`). Temporal detects threading and kills the workflow because threads aren't deterministic!
+   - **The Fix:** We told Temporal that we know what we are doing by wrapping our imports in `with workflow.unsafe.imports_passed_through():`. This punches a hole in the sandbox allowing `pytz` to load.
+2. **The `os.getenv` Non-Deterministic Error:**
+   - **The Error:** The workflow crashed with `Cannot access os.getenv.__call__`.
+   - **The Cause:** Again, workflows must be deterministic. If a workflow reads an environment variable on Monday, goes to sleep, and reads it again on Friday, the variable might have changed! Temporal forbids reading environment variables inside workflows.
+   - **The Fix:** Instead of reading the `TIME_SCALE` env var inside the workflow, we read it inside `seed_event.py` (which is standard Python) and passed it into the workflow as an input argument (`args["time_scale"]`).
+3. **The Infinite Loop Deadlock:**
+   - **The Error:** `Potential deadlock detected: workflow didn't yield within 2 second(s).`
+   - **The Cause:** We had a bug where if a reminder was already sent, we used `continue` to jump to the top of the `while True:` loop. But the top of the loop just recomputed the same reminders again, saw it was sent again, and `continue`d again. It looped infinitely without ever hitting an `await` (yield).
+   - **The Fix:** We rewrote the logic to loop through the reminders array to find the *first unsent reminder*, and then waited for *that* specific time, completely breaking the infinite loop.
