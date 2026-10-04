@@ -14,22 +14,35 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState('');
 
-  // We would normally fetch from /api/events here
-  // useEffect(() => {
-  //   fetch('/api/events').then(r => r.json()).then(setEvents);
-  // }, []);
-
-  // Fake events for demonstration of UI
-  const mockEvents = [
-    { id: 1, company: 'Google', role: 'SWE Intern', kind: 'interview', local_time_str: 'Oct 15, 10:00 AM' },
-    { id: 2, company: 'Amazon', role: 'SDE1', kind: 'online assessment', local_time_str: 'Oct 18, 11:59 PM' },
-    { id: 3, company: 'Meta', role: 'Frontend Engineer', kind: 'interview', local_time_str: 'Oct 20, 2:00 PM' },
-  ];
+  useEffect(() => {
+    fetch('http://localhost:8000/api/events')
+      .then(r => r.json())
+      .then(data => setEvents(data))
+      .catch(e => console.error(e));
+  }, []);
 
   const handleSync = async () => {
     setLoading(true);
-    // await fetch('/api/sync', { method: 'POST' });
+    try {
+      await fetch('http://localhost:8000/api/sync', { method: 'POST' });
+    } catch (e) {
+      console.error(e);
+    }
     setTimeout(() => setLoading(false), 1000);
+  };
+
+  const handleTelegramLink = async () => {
+    if (!telegramId) return;
+    try {
+      await fetch('http://localhost:8000/api/telegram', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: telegramId })
+      });
+      alert('Linked!');
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -81,7 +94,7 @@ function App() {
                   value={telegramId}
                   onChange={(e) => setTelegramId(e.target.value)}
                 />
-                <button><Send size={16} /></button>
+                <button onClick={handleTelegramLink}><Send size={16} /></button>
               </div>
             </div>
 
@@ -115,8 +128,9 @@ function App() {
               <div className="card-title">Upcoming events</div>
               
               <div style={{display: 'flex', flexDirection: 'column', gap: '10px'}}>
-                {mockEvents.map(event => (
-                  <div key={event.id} className="pill event-item">
+                {events.length === 0 && <div style={{color: 'var(--text-muted)'}}>No upcoming events found.</div>}
+                {events.map(event => (
+                  <div key={event._id} className="pill event-item">
                     <div className="item-icon" style={{backgroundColor: 'white'}}>
                       <Video size={20} />
                     </div>

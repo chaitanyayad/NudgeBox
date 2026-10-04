@@ -228,3 +228,28 @@ We used `httpx` for fast, asynchronous HTTP requests to Google's token endpoint.
    - **The Error:** `Potential deadlock detected: workflow didn't yield within 2 second(s).`
    - **The Cause:** We had a bug where if a reminder was already sent, we used `continue` to jump to the top of the `while True:` loop. But the top of the loop just recomputed the same reminders again, saw it was sent again, and `continue`d again. It looped infinitely without ever hitting an `await` (yield).
    - **The Fix:** We rewrote the logic to loop through the reminders array to find the *first unsent reminder*, and then waited for *that* specific time, completely breaking the infinite loop.
+
+
+---
+
+## 🖥️ Phase E: Dashboard UI (Task 12)
+
+### What we did:
+- Scaffolded a fast, modern frontend using **Vite + React + TypeScript**.
+- Built a beautiful, premium Dashboard UI using a custom "Green Glassmorphism" aesthetic with rounded corners, soft shadows, and clean typography.
+- Wired the frontend directly to our FastAPI backend to fetch actual event data and trigger backend workflows.
+
+### What each file/function does in detail:
+*   `frontend/src/index.css`: Contains the entire design system and aesthetic logic. We created a custom `--primary-green` color palette and mapped out variables for background colors, card colors, and border radii. We avoided using heavy frameworks like Tailwind to maintain absolute control over the styling.
+*   `frontend/src/App.tsx`: The main Dashboard React component. 
+    *   **State:** Uses `useState` to manage the list of `events` and the `telegramId` string.
+    *   **Data Fetching:** Uses a `useEffect` hook to send a `GET` request to `http://localhost:8000/api/events` on component mount, which loads the scheduled interviews from the backend into the UI.
+    *   **`handleSync`**: Sends a `POST` request to `http://localhost:8000/api/sync` which physically reaches into the backend and triggers the Temporal `SyncMailboxWorkflow`.
+    *   **`handleTelegramLink`**: Sends the pasted chat ID to `http://localhost:8000/api/telegram` to save it in the MongoDB database.
+*   `backend/api/main.py` (Backend Integration):
+    *   **CORS Middleware**: We added `CORSMiddleware` to the FastAPI app. By default, browsers block frontend apps (running on port 5173) from talking to backends (running on port 8000) for security reasons. This middleware punches a hole to allow them to communicate.
+    *   **`GET /api/events`**: Reaches into MongoDB's `db.events`, converts the `ObjectId`s to strings, and returns them to the frontend. If the database is empty, it returns a hardcoded mock array (Google, Amazon) so the UI doesn't look broken during demonstrations.
+    *   **`POST /api/sync`**: Reaches out to the `temporalio.client` and starts the `SyncMailboxWorkflow` on the `nudgebox-tasks` queue!
+
+### The End Result:
+We now have a complete, end-to-end AI agent system. It reads emails, evaluates them for hallucinations and prompt injections using Gemma 3, mathematically calculates timezones, schedules durable 7-day sleeps in Temporal, pings your phone via Telegram, and displays everything on a stunning green dashboard.
