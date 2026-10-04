@@ -323,3 +323,17 @@ We now have a complete, end-to-end AI agent system. It reads emails, evaluates t
 ### What we learned:
 - **Privacy by Design in Vector DBs:** Instead of embedding the raw email body (which could contain sensitive data), we extract the structured data first, create a sanitized string, and embed *that*. 
 - **Semantic Search:** This vector index allows us to do nearest-neighbor searches using cosine similarity. If the LLM is struggling to extract an email for a weirdly formatted "Goldman Sachs HireVue", we can query Atlas for the 3 most similar past events and inject them directly into the LLM's prompt as dynamic few-shot examples!
+
+
+---
+
+## 🏆 Phase F: Prize Layers - Task 20 (ElevenLabs Voice Nudge)
+
+### What we did:
+- Added a `VoiceNotifier` class to `backend/notifications/notifier.py`.
+- Integrated the ElevenLabs `text-to-speech` API to generate a hype, high-quality audio clip for the `R4` (T-1 hour) nudge.
+- Implemented `sendVoice` using the Telegram Bot API to deliver the `.mp3` directly into the user's chat.
+
+### What we learned:
+- **Rich Notifications:** Sending a standard text message is great, but receiving an enthusiastic voice note an hour before your interview adds an entirely new level of product polish and user delight.
+- **API Handoffs:** We successfully chained an LLM data extraction workflow into a durable Temporal sleep, which then triggers an ElevenLabs TTS generation, which finally hands off the binary audio buffer to Telegram.
