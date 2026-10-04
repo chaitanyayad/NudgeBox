@@ -295,3 +295,17 @@ We now have a complete, end-to-end AI agent system. It reads emails, evaluates t
 ### What we learned:
 - **Infrastructure as Code (IaC):** Using a `render.yaml` Blueprint ensures that our production environment exactly mirrors our definitions, rather than manually clicking through a cloud console.
 - **Service Isolation:** Render automatically isolates our background worker (Temporal) from our public-facing web API, giving us scaling flexibility.
+
+
+---
+
+## 🏆 Phase F: Prize Layers - Task 18 (Sentry Agent Tracing)
+
+### What we did:
+- Installed `sentry-sdk` and added the `SENTRY_DSN` configuration to `.env`.
+- Initialized Sentry globally in `backend/api/main.py` (FastAPI) and `backend/worker/main.py` (Temporal worker).
+- Configured 100% traces and profile sampling rates.
+
+### What we learned:
+- **Distributed Tracing:** By initializing Sentry at the entry points of both the API and the background worker, any unhandled exceptions during the extraction phase or workflow scheduling are instantly captured.
+- **Production Readiness:** If Gemma hallucinates a weird JSON shape that bypassing Instructor's retry logic, Sentry will catch the exact failure, allowing us to patch our prompt or schema rapidly.

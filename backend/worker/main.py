@@ -13,6 +13,15 @@ from backend.worker.activities import (
     extract_event_activity,
     upsert_event_activity
 )
+from backend.shared.env import settings
+import sentry_sdk
+
+if settings.SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=settings.SENTRY_DSN,
+        traces_sample_rate=1.0,
+        profiles_sample_rate=1.0,
+    )
 
 async def main():
     # Connect to local Temporal server or cloud
