@@ -4,7 +4,7 @@
 
 NudgeBox is a privacy-first autonomous agent that connects to a user's Gmail, extracts interview invites and online assessments (OAs) using local LLMs, and schedules multi-channel notifications (T-7 days, T-1 day, morning-of, and T-1 hour) to ensure users never miss an important career event.
 
-![NudgeBox Dashboard](./screenshots/{D97887FE-7C9B-4ED3-B564-42AE69FDD28D}.png)
+![NudgeBox Dashboard](./screenshots/dashboard.png)
 
 ---
 
@@ -14,7 +14,7 @@ My friend Tushar is a brilliant developer, but his inbox is an absolute disaster
 
 **NudgeBox** solves this by acting as an autonomous exoskeleton. It securely reads his inbox, accurately identifies career-critical events, and durably schedules aggressive nudges so he is always prepared.
 
-![NudgeBox Demo](./screenshots/{498419F7-0D68-45A3-9D3A-B923F1E823A0}.png)
+![NudgeBox Demo](./screenshots/demo.png)
 
 ---
 
