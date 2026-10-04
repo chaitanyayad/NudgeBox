@@ -253,3 +253,17 @@ We used `httpx` for fast, asynchronous HTTP requests to Google's token endpoint.
 
 ### The End Result:
 We now have a complete, end-to-end AI agent system. It reads emails, evaluates them for hallucinations and prompt injections using Gemma 3, mathematically calculates timezones, schedules durable 7-day sleeps in Temporal, pings your phone via Telegram, and displays everything on a stunning green dashboard.
+
+
+---
+
+## 🏆 Phase F: Prize Layers - Task 14 (Temporal Story)
+
+### What we did:
+- Documented the exact reason why Temporal was chosen over a simple Cron job or `setTimeout` function.
+- Added a "Why Temporal" section to the root `README.md` containing a reproducible "kill-worker" experiment.
+
+### What we learned:
+- **Durable Execution:** Temporal workflows look like standard Python async functions, but every `await` (like a sleep) serializes the state to the database.
+- **Resilience:** If the Python worker process dies during a 7-day sleep, the sleep is not lost. When the worker comes back online, Temporal immediately resumes the workflow right where it left off.
+- **Hackathon Value:** This specific resilience story is perfect for the Temporal prize category, as it clearly demonstrates an understanding of their core value proposition instead of just using it as an over-engineered cron job.
