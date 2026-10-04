@@ -309,3 +309,17 @@ We now have a complete, end-to-end AI agent system. It reads emails, evaluates t
 ### What we learned:
 - **Distributed Tracing:** By initializing Sentry at the entry points of both the API and the background worker, any unhandled exceptions during the extraction phase or workflow scheduling are instantly captured.
 - **Production Readiness:** If Gemma hallucinates a weird JSON shape that bypassing Instructor's retry logic, Sentry will catch the exact failure, allowing us to patch our prompt or schema rapidly.
+
+
+---
+
+## 🏆 Phase F: Prize Layers - Task 19 (MongoDB Atlas Vector Search)
+
+### What we did:
+- Created `backend/shared/embed.py` which interfaces with Ollama's `api/embeddings` endpoint using `nomic-embed-text`.
+- Wrote the logic to take a strictly non-sensitive summary of an event (e.g., "interview Google SWE Intern") and convert it into a 768-dimensional vector.
+- Appended the MongoDB Atlas Vector Search JSON definition required to index these embeddings.
+
+### What we learned:
+- **Privacy by Design in Vector DBs:** Instead of embedding the raw email body (which could contain sensitive data), we extract the structured data first, create a sanitized string, and embed *that*. 
+- **Semantic Search:** This vector index allows us to do nearest-neighbor searches using cosine similarity. If the LLM is struggling to extract an email for a weirdly formatted "Goldman Sachs HireVue", we can query Atlas for the 3 most similar past events and inject them directly into the LLM's prompt as dynamic few-shot examples!
