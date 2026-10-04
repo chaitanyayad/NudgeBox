@@ -18,6 +18,17 @@ My friend Tushar is a brilliant developer, but his inbox is an absolute disaster
 
 ---
 
+## 🔍 How It Works Under the Hood
+
+NudgeBox operates as a fully autonomous data pipeline that runs continuously in the background:
+
+1. **Secure Email Ingestion:** Every hour, a Temporal cron workflow securely connects to the user's Gmail using an OAuth Refresh Token (bypassing the need for passwords). It uses targeted search queries to pull only emails matching interview patterns (e.g., from `hackerrank.com`, or containing "online assessment").
+2. **Local AI Extraction:** The raw email text is stripped of HTML and passed to **Gemma 3** running entirely locally via Ollama. Using `instructor` and Pydantic AI, Gemma extracts the exact start time, company name, role, and meeting link into a strictly validated JSON schema. By running locally, **zero sensitive personal data** ever leaves the machine.
+3. **Durable Scheduling:** The extracted event is saved to MongoDB. The FastAPI backend then triggers a `ReminderWorkflow` in Temporal. This workflow calculates the exact sleep intervals needed to wake up at T-7 days, T-24 hours, morning-of, and T-1 hour. 
+4. **Multi-Channel Delivery:** When a Temporal sleep timer expires, the worker wakes up and executes an activity. For standard nudges, it sends a Telegram message. For the final T-1 hour nudge, it dynamically synthesizes an encouraging audio message using the **ElevenLabs TTS API** and delivers it directly to the user's phone via a Telegram Voice Note.
+
+---
+
 ## ⚙️ Architecture & Technical Stack
 
 ```mermaid
