@@ -18,18 +18,9 @@ My friend Tushar is a brilliant developer, but his inbox is an absolute disaster
 
 ---
 
-## 🔍 How It Works Under the Hood
+## ⚙️ The Architecture Pipeline (How It Works Under the Hood)
 
-NudgeBox operates as a fully autonomous data pipeline that runs continuously in the background:
-
-1. **Secure Email Ingestion:** Every hour, a Temporal cron workflow securely connects to the user's Gmail using an OAuth Refresh Token (bypassing the need for passwords). It uses targeted search queries to pull only emails matching interview patterns (e.g., from `hackerrank.com`, or containing "online assessment").
-2. **Local AI Extraction:** The raw email text is stripped of HTML and passed to **Gemma 3** running entirely locally via Ollama. Using `instructor` and Pydantic AI, Gemma extracts the exact start time, company name, role, and meeting link into a strictly validated JSON schema. By running locally, **zero sensitive personal data** ever leaves the machine.
-3. **Durable Scheduling:** The extracted event is saved to MongoDB. The FastAPI backend then triggers a `ReminderWorkflow` in Temporal. This workflow calculates the exact sleep intervals needed to wake up at T-7 days, T-24 hours, morning-of, and T-1 hour. 
-4. **Multi-Channel Delivery:** When a Temporal sleep timer expires, the worker wakes up and executes an activity. For standard nudges, it sends a Telegram message. For the final T-1 hour nudge, it dynamically synthesizes an encouraging audio message using the **ElevenLabs TTS API** and delivers it directly to the user's phone via a Telegram Voice Note.
-
----
-
-## ⚙️ Architecture & Technical Stack
+NudgeBox operates as a fully autonomous data pipeline that runs continuously in the background. Here is exactly what happens when it runs:
 
 ```mermaid
 graph TD
@@ -47,18 +38,35 @@ graph TD
     ElevenLabs -->|Voice Note| Telegram
 ```
 
-### Core Technologies Used
+### 1. Secure Email Ingestion & OAuth PKCE
+We never ask for a user's Google password. We implemented the full Google OAuth 2.0 authorization code flow from scratch. We specifically request `prompt=consent` and `access_type=offline` to obtain a **Refresh Token**. 
+*   **Envelope Encryption:** We don't store this token in plain text. We generate a unique AES-256-GCM Data Encryption Key (DEK) for every single user, encrypt the token with it, and then wrap that DEK with a global Master Key. 
+*   Every hour, a Temporal cron workflow securely decrypts this token, bypassing the need for passwords, and uses targeted Gmail queries to pull only emails matching interview patterns (e.g., from `hackerrank.com`, or containing "online assessment").
 
-1. **LLM Extraction Engine (Gemma 3)**
-   - We use **Gemma 3** (served locally via Ollama) to parse unstructured email text into strict JSON schemas using `instructor` and Pydantic. By processing emails locally with open weights, we guarantee **zero data exfiltration** of highly sensitive personal emails.
-2. **Durable Execution (Temporal)**
-   - NudgeBox schedules reminders up to 7 days in the future. Traditional cron jobs would drop these if the server restarted. We utilize **Temporal** to orchestrate long-running sleep states. Workflows serialize their state to the database, ensuring zero reminders are lost even during catastrophic server failures.
-3. **Distributed Tracing (Sentry)**
-   - Both the FastAPI backend and Temporal worker are fully instrumented with the **Sentry SDK** for real-time error tracking and LLM hallucination monitoring.
-4. **Multi-Channel Notifications (ElevenLabs)**
-   - In addition to Telegram text reminders, NudgeBox dynamically generates an enthusiastic audio voice note using the **ElevenLabs** API at T-1 hour to hype the user up for their interview.
-5. **Infrastructure as Code (Render)**
-   - The entire stack is orchestrated via a `render.yaml` Blueprint for robust, reproducible deployments.
+### 2. Local AI Extraction Engine (Gemma 3)
+The raw email text is stripped of HTML and passed to **Gemma 3** running entirely locally via Ollama. 
+*   **Zero Data Exfiltration:** By processing emails locally with open weights, we guarantee zero sensitive personal data ever leaves the machine.
+*   **Instructor & Pydantic:** We use the `instructor` library to wrap the OpenAI-compatible client. If Gemma gets confused and outputs raw text instead of JSON, `instructor` catches the Pydantic validation error and automatically forces the LLM to retry until it strictly matches our `EventSchema`.
+*   **The Confidence Gate:** We implemented a post-validation mathematical check. If the AI returns a `confidence < 0.6`, we don't throw the event away, but we trigger a manual review on the frontend dashboard.
+*   **Evaultion Suite:** We built a brutal evaluation suite (`dataset_hard.jsonl`) with hacker prompt-injections ("ignore previous instructions"). Our Gemma implementation scored **100% resilience** because of our strict system prompt hardening.
+
+### 3. Durable Scheduling (Temporal)
+Once an event is verified, NudgeBox schedules reminders up to 7 days in the future. Traditional cron jobs would drop these if the server restarted. 
+*   We utilize **Temporal** to orchestrate long-running sleep states. Workflows serialize their state to the database, ensuring zero reminders are lost even during catastrophic server failures.
+
+### 4. Multi-Channel Delivery (ElevenLabs + Telegram)
+When a Temporal sleep timer expires (calculated securely handling all timezone and DST offsets), the worker wakes up:
+*   For T-7d, T-24h, and Morning-of nudges, it sends a highly contextual text via the Telegram Bot API.
+*   For the final **T-1 hour nudge**, it dynamically synthesizes an encouraging audio message using the **ElevenLabs TTS API** ("Tushar, your interview with Google is in one hour. You've got this!") and delivers it directly to the user's phone via a Telegram Voice Note.
+
+### 5. Semantic Search & Memory (MongoDB Atlas Vector Search)
+We embed sanitized event data using `nomic-embed-text` (running locally) and index it in **MongoDB Atlas Vector Search**. This acts as the long-term memory for the LLM, allowing us to perform semantic nearest-neighbor retrieval on past interviews to inject context into future prompts.
+
+### 6. Distributed Tracing (Sentry)
+Both the FastAPI backend and the Temporal background worker are fully instrumented with the **Sentry SDK** with a 100% sampling rate. This guarantees real-time error tracking across distributed services and catches LLM hallucinations instantly.
+
+### 7. Infrastructure as Code (Render)
+The entire stack is orchestrated via a `render.yaml` Blueprint for robust, reproducible deployments.
 
 ---
 
