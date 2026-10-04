@@ -4,7 +4,7 @@
 > 
 > NudgeBox is your AI exoskeleton for the job hunt. It's a privacy-first, fully autonomous agent that connects to your Gmail, reads your inbox looking for Interview invites and Online Assessments (OAs), and durably schedules aggressive multi-channel nudges at **T-7 days, T-1 day, morning-of, and T-1 hour**.
 
-![NudgeBox Dashboard](./frontend/src/assets/hero.png) *(Imagine a beautiful green glassmorphic UI here!)*
+![NudgeBox Dashboard](./docs/hero.jpg)
 
 ---
 
