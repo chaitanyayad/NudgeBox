@@ -36,13 +36,13 @@ async def get_access_token(user_id: str) -> str:
         
     return resp.json()["access_token"]
 
-async def fetch_emails(user_id: str, max_results: int = 10) -> List[Dict[str, Any]]:
+async def fetch_emails(user_id: str, max_results: int = 50) -> List[Dict[str, Any]]:
     access_token = await get_access_token(user_id)
     
     # Advanced query to filter exactly what we need, skipping spam
     query = (
         'newer_than:30d ('
-        'subject:(interview OR "online assessment" OR assessment OR "coding challenge" OR "technical screen" OR "next steps" OR invitation) '
+        'subject:(interview OR interviews OR "online assessment" OR assessment OR "coding challenge" OR "technical screen" OR "next steps" OR invitation OR "Challenge" OR "Selection" OR "Application" OR "Offer") '
         'OR from:(hackerrank.com OR codility.com OR codesignal.com OR hirevue.com OR greenhouse.io OR lever.co OR myworkday.com OR calendly.com OR goodtime.io) '
         'OR "your interview" OR "schedule your" OR "OA link"'
         ')'
@@ -110,3 +110,20 @@ async def fetch_emails(user_id: str, max_results: int = 10) -> List[Dict[str, An
             })
             
     return emails
+
+async def send_gmail_reminder(user_id: str, subject: str, body: str) -> bool:
+    access_token = await get_access_token(user_id)
+    db = await get_db()
+    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    to_email = user.get("email")
+    
+    message = f"To: {to_email}\nSubject: {subject}\n\n{body}"
+    encoded_message = base64.urlsafe_b64encode(message.encode('utf-8')).decode('utf-8')
+    
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{GMAIL_API_BASE}/messages/send",
+            json={"raw": encoded_message},
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+    return resp.status_code == 200

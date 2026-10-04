@@ -142,7 +142,7 @@ class SyncMailboxWorkflow:
             if event:
                 await workflow.execute_activity(
                     upsert_event_activity,
-                    event,
+                    {"event_data": event, "user_id": user_id},
                     schedule_to_close_timeout=timedelta(minutes=1)
                 )
                 

@@ -34,7 +34,7 @@ async def start_oauth(response: Response):
         f"client_id={settings.GOOGLE_CLIENT_ID}&"
         f"redirect_uri=http://localhost:8000/auth/google/callback&"
         f"response_type=code&"
-        f"scope=https://www.googleapis.com/auth/gmail.readonly openid email profile&"
+        f"scope=https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send openid email profile&"
         f"access_type=offline&"
         f"prompt=consent&"
         f"state={state}&"
@@ -124,7 +124,7 @@ async def oauth_callback(request: Request, response: Response, code: str = None,
         algorithm="HS256"
     )
     
-    redirect = RedirectResponse(url="/dashboard")
+    redirect = RedirectResponse(url="http://localhost:5173/dashboard")
     redirect.set_cookie(
         key="session",
         value=session_jwt,

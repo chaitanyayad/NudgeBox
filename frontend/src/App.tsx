@@ -4,6 +4,9 @@ import {
   LogOut,
   RefreshCw,
   Video,
+  Code,
+  Phone,
+  Calendar,
   Send,
   User
 } from 'lucide-react';
@@ -14,11 +17,15 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [telegramId, setTelegramId] = useState('');
 
-  useEffect(() => {
+  const fetchEvents = () => {
     fetch('http://localhost:8000/api/events')
       .then(r => r.json())
       .then(data => setEvents(data))
       .catch(e => console.error(e));
+  };
+
+  useEffect(() => {
+    fetchEvents();
   }, []);
 
   const handleSync = async () => {
@@ -28,7 +35,12 @@ function App() {
     } catch (e) {
       console.error(e);
     }
-    setTimeout(() => setLoading(false), 1000);
+    // Poll for new events every 2 seconds for 2 minutes since extraction takes a bit
+    const intervalId = setInterval(fetchEvents, 2000);
+    setTimeout(() => {
+      clearInterval(intervalId);
+      setLoading(false);
+    }, 120000);
   };
 
   const handleTelegramLink = async () => {
@@ -44,6 +56,40 @@ function App() {
       console.error(e);
     }
   };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('http://localhost:8000/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  if (window.location.pathname !== '/dashboard') {
+    return (
+      <div className="landing-container">
+        <div className="landing-blob-1"></div>
+        <div className="landing-blob-2"></div>
+        <div className="landing-content">
+          <div className="landing-glass-card">
+            <div style={{display: 'flex', justifyContent: 'center', marginBottom: 20}}>
+              <div style={{width: 64, height: 64, borderRadius: '50%', backgroundColor: 'var(--primary-green)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white'}}>
+                <Calendar size={32} />
+              </div>
+            </div>
+            <h1 className="landing-title">Nudge<span>Box</span></h1>
+            <p className="landing-subtitle">
+              The intelligent inbox assistant that automatically detects interview invites, recruiter calls, and online assessments to send you instant reminders. Never miss an opportunity again.
+            </p>
+            <a href="http://localhost:8000/auth/google/start" className="landing-btn">
+              Get Started with Google
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="dashboard-container">
@@ -65,7 +111,7 @@ function App() {
           <li className="nav-item active"><LayoutDashboard size={20} /> Dashboard</li>
         </ul>
 
-        <div className="nav-item" style={{ marginTop: 'auto' }}>
+        <div className="nav-item" style={{ marginTop: 'auto', cursor: 'pointer' }} onClick={handleLogout}>
           <LogOut size={20} /> Log out
         </div>
       </div>
@@ -97,6 +143,31 @@ function App() {
                 <button onClick={handleTelegramLink}><Send size={16} /></button>
               </div>
             </div>
+
+            {/* Email Reminders Widget */}
+            <div className="card">
+              <div className="card-title">Email Reminders</div>
+              <p style={{fontSize: 14, color: 'var(--text-muted)'}}>
+                Receive automatic reminder emails directly to your Gmail inbox for your upcoming interviews and assessments.
+              </p>
+              <div className="telegram-input">
+                <div style={{
+                  padding: '10px 15px', 
+                  backgroundColor: '#f1f3f4', 
+                  borderRadius: '8px', 
+                  color: 'var(--primary-green)', 
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%'
+                }}>
+                  <Send size={16} /> Active for your Google Account
+                </div>
+              </div>
+            </div>
+
+
 
             {/* Sync Mailbox Widget */}
             <div className="card" style={{flex: 1}}>
@@ -132,11 +203,18 @@ function App() {
                 {events.map(event => (
                   <div key={event._id} className="pill event-item">
                     <div className="item-icon" style={{backgroundColor: 'white'}}>
-                      <Video size={20} />
+                      {event.kind === 'online_assessment' ? <Code size={20} /> :
+                       event.kind === 'recruiter_call' ? <Phone size={20} /> :
+                       event.kind === 'interview' ? <Video size={20} /> :
+                       <Calendar size={20} />}
                     </div>
                     <div className="pill-content">
                       <div className="item-title">{event.company} - {event.role}</div>
-                      <div className="item-subtitle">{event.local_time_str}</div>
+                      <div className="item-subtitle">
+                        <span style={{textTransform: 'capitalize', fontWeight: 'bold', color: 'var(--primary-green)'}}>
+                          {event.kind ? event.kind.replace('_', ' ') : 'Event'}
+                        </span> &bull; {event.local_time_str}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -153,9 +231,13 @@ function App() {
               <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 100, height: 100}}>
                 <svg width="100" height="100" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#81c995" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="0" strokeLinecap="round" transform="rotate(-90 50 50)" />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#81c995" strokeWidth="8" strokeDasharray="251.2" 
+                          strokeDashoffset={events.length > 0 ? 251.2 - (251.2 * (events.reduce((a, e) => a + (e.confidence || 1), 0) / events.length)) : 251.2} 
+                          strokeLinecap="round" transform="rotate(-90 50 50)" />
                 </svg>
-                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>100%</span>
+                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>
+                  {events.length > 0 ? Math.round((events.reduce((a, e) => a + (e.confidence || 1), 0) / events.length) * 100) : 0}%
+                </span>
               </div>
             </div>
 
@@ -164,9 +246,11 @@ function App() {
               <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 100, height: 100}}>
                 <svg width="100" height="100" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#fbbc04" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="75" strokeLinecap="round" transform="rotate(-90 50 50)" />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#fbbc04" strokeWidth="8" strokeDasharray="251.2" 
+                          strokeDashoffset={251.2 - (251.2 * (events.length > 0 ? Math.min(events.length / 10, 1) : 0))} 
+                          strokeLinecap="round" transform="rotate(-90 50 50)" />
                 </svg>
-                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>3</span>
+                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>{events.length}</span>
               </div>
             </div>
 
