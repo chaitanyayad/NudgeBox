@@ -1,19 +1,11 @@
 import { useState, useEffect } from 'react';
 import { 
-  LayoutDashboard, 
-  BookOpen, 
-  GraduationCap, 
-  Calendar, 
-  MessageSquare, 
-  Settings,
+  LayoutDashboard,
   LogOut,
-  Search,
-  Bell,
-  MoreVertical,
-  MessageCircle,
   RefreshCw,
   Video,
-  Send
+  Send,
+  User
 } from 'lucide-react';
 import './index.css';
 
@@ -50,18 +42,14 @@ function App() {
         </div>
 
         <div className="user-profile">
-          <img className="avatar" src="https://i.pravatar.cc/150?img=32" alt="User" />
+          <div className="avatar" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-green)'}}>
+            <User size={32} />
+          </div>
           <div className="user-name">Chaitanya</div>
-          <div className="user-role">Hacker</div>
         </div>
 
         <ul className="nav-menu">
           <li className="nav-item active"><LayoutDashboard size={20} /> Dashboard</li>
-          <li className="nav-item"><BookOpen size={20} /> My roles</li>
-          <li className="nav-item"><GraduationCap size={20} /> Assessments</li>
-          <li className="nav-item"><Calendar size={20} /> Schedule</li>
-          <li className="nav-item"><MessageSquare size={20} /> Messages</li>
-          <li className="nav-item"><Settings size={20} /> Settings</li>
         </ul>
 
         <div className="nav-item" style={{ marginTop: 'auto' }}>
@@ -72,16 +60,7 @@ function App() {
       {/* MAIN CONTENT */}
       <div className="main-content">
         <div className="header">
-          <h1>HELLO, CHAITANYA!</h1>
-          
-          <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-            <div className="search-bar">
-              <Search size={18} color="var(--text-muted)" />
-              <input type="text" placeholder="Search..." />
-            </div>
-            <Bell size={24} color="var(--text-muted)" />
-            <MoreVertical size={24} color="var(--text-muted)" />
-          </div>
+          <h1>DASHBOARD</h1>
         </div>
 
         <div className="dashboard-grid">
@@ -104,7 +83,6 @@ function App() {
                 />
                 <button><Send size={16} /></button>
               </div>
-              <div className="see-more">See tutorial &gt;</div>
             </div>
 
             {/* Sync Mailbox Widget */}
@@ -122,7 +100,7 @@ function App() {
                 <div className="item-icon"><div style={{width: 10, height: 10, borderRadius: '50%', backgroundColor: 'var(--accent-bright)'}}></div></div>
                 <div className="item-details">
                   <div className="item-title">Status: Connected</div>
-                  <div className="item-subtitle">Last synced: 2 mins ago</div>
+                  <div className="item-subtitle">Last synced: Just now</div>
                 </div>
               </div>
             </div>
@@ -149,7 +127,6 @@ function App() {
                   </div>
                 ))}
               </div>
-              <div className="see-more">See all &gt;</div>
             </div>
 
           </div>
@@ -158,37 +135,25 @@ function App() {
           <div className="right-column">
             
             <div className="stat-card">
-              <div className="stat-title">Interviews</div>
+              <div className="stat-title">Detection Accuracy</div>
               <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 100, height: 100}}>
                 <svg width="100" height="100" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#f28b82" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="75" strokeLinecap="round" transform="rotate(-90 50 50)" />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#81c995" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="0" strokeLinecap="round" transform="rotate(-90 50 50)" />
                 </svg>
-                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>70%</span>
+                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>100%</span>
               </div>
             </div>
 
             <div className="stat-card">
-              <div className="stat-title">Assessments</div>
+              <div className="stat-title">Active Workflows</div>
               <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 100, height: 100}}>
                 <svg width="100" height="100" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#81c995" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="25" strokeLinecap="round" transform="rotate(-90 50 50)" />
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#fbbc04" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="75" strokeLinecap="round" transform="rotate(-90 50 50)" />
                 </svg>
-                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>90%</span>
+                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>3</span>
               </div>
-            </div>
-
-            <div className="stat-card">
-              <div className="stat-title">Reminders</div>
-              <div style={{position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 100, height: 100}}>
-                <svg width="100" height="100" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#fbbc04" strokeWidth="8" strokeDasharray="251.2" strokeDashoffset="125" strokeLinecap="round" transform="rotate(-90 50 50)" />
-                </svg>
-                <span style={{position: 'absolute', fontSize: 24, fontWeight: 700}}>50%</span>
-              </div>
-              <div className="see-more" style={{color: 'rgba(255,255,255,0.7)', marginTop: '20px'}}>See more &gt;</div>
             </div>
 
           </div>
